@@ -24,8 +24,38 @@ const adminAuth = async (req, res, next) => {
 // @desc    Get Platform Stats
 router.get('/stats', adminAuth, async (req, res) => {
     try {
+        // User Statistics
         const totalUsers = await User.countDocuments();
+        const newUsersToday = await User.countDocuments({
+            createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+        });
+        const newUsersThisWeek = await User.countDocuments({
+            createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+        });
+        const newUsersThisMonth = await User.countDocuments({
+            createdAt: { $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
+        });
+
+        // Device Statistics
         const totalDevices = await Device.countDocuments();
+        const newDevicesToday = await Device.countDocuments({
+            createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+        });
+        const newDevicesThisWeek = await Device.countDocuments({
+            createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+        });
+        const newDevicesThisMonth = await Device.countDocuments({
+            createdAt: { $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
+        });
+
+        // Flagged Devices
+        const flaggedDevices = await Device.countDocuments({
+            status: { $in: ['stolen', 'lost', 'missing'] }
+        });
+        const stolenDevices = await Device.countDocuments({ status: 'stolen' });
+        const lostDevices = await Device.countDocuments({ status: 'lost' });
+
+        // Revenue Statistics
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
 
@@ -34,14 +64,54 @@ router.get('/stats', adminAuth, async (req, res) => {
             { $group: { _id: null, total: { $sum: '$amount' } } }
         ]);
 
-        const flaggedDevices = await Device.countDocuments({ status: { $in: ['stolen', 'lost'] } });
+        const thisWeekRevenue = await Transaction.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+                    status: 'success'
+                }
+            },
+            { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]);
+
+        const allTimeRevenue = await Transaction.aggregate([
+            { $match: { status: 'success' } },
+            { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]);
+
+        // User Role Breakdown
+        const basicUsers = await User.countDocuments({ role: 'basic' });
+        const vendorUsers = await User.countDocuments({ role: 'vendor' });
+        const activeVendors = await User.countDocuments({ role: 'vendor', isVendorActive: true });
+        const enterpriseUsers = await User.countDocuments({ role: 'enterprise_admin' });
+        const suspendedUsers = await User.countDocuments({ isAccountSuspended: true });
 
         res.json({
-            totalUsers,
-            totalDevices,
-            revenueToday: todaysRevenue[0]?.total || 0,
-            flaggedDevices,
-            activeVendors: await User.countDocuments({ role: 'vendor', isVendorActive: true })
+            users: {
+                total: totalUsers,
+                newToday: newUsersToday,
+                newThisWeek: newUsersThisWeek,
+                newThisMonth: newUsersThisMonth,
+                basic: basicUsers,
+                vendors: vendorUsers,
+                activeVendors,
+                enterprise: enterpriseUsers,
+                suspended: suspendedUsers
+            },
+            devices: {
+                total: totalDevices,
+                newToday: newDevicesToday,
+                newThisWeek: newDevicesThisWeek,
+                newThisMonth: newDevicesThisMonth,
+                flagged: flaggedDevices,
+                stolen: stolenDevices,
+                lost: lostDevices
+            },
+            revenue: {
+                today: todaysRevenue[0]?.total || 0,
+                thisWeek: thisWeekRevenue[0]?.total || 0,
+                allTime: allTimeRevenue[0]?.total || 0
+            }
         });
     } catch (err) {
         console.error(err);
