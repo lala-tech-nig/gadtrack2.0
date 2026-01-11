@@ -1,6 +1,12 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
+import AnimatedInput from '../../components/AnimatedInput';
+import AnimatedButton from '../../components/AnimatedButton';
+import { triggerConfetti } from '../../utils/confetti';
+import { playWelcomeMessage } from '../../utils/voice';
 
 export default function AuthPage() {
     const [isLogin, setIsLogin] = useState(true);
@@ -8,9 +14,9 @@ export default function AuthPage() {
         name: '',
         email: '',
         password: '',
-        role: 'basic'
+        role: 'basic',
+        nin: ''
     });
-    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
@@ -18,7 +24,6 @@ export default function AuthPage() {
 
     const onSubmit = async (e) => {
         e.preventDefault();
-        setError('');
         setLoading(true);
 
         const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
@@ -26,86 +31,97 @@ export default function AuthPage() {
         try {
             const res = await fetch(endpoint, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(isLogin ? { email: formData.email, password: formData.password } : formData)
             });
 
             const data = await res.json();
 
-            if (!res.ok) {
-                throw new Error(data.msg || 'Authentication failed');
-            }
+            if (!res.ok) throw new Error(data.msg || 'Authentication failed');
 
-            // Store Token
+            // Success Actions
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
 
-            // Redirect
-            router.push('/dashboard');
+            triggerConfetti();
+            const message = isLogin ? `Welcome back, ${data.user.name}` : `Welcome to Trace It, ${data.user.name}`;
+            playWelcomeMessage(message);
+            toast.success(message); // Also show visual toast
+
+            setTimeout(() => router.push('/dashboard'), 2000); // Wait for animation
         } catch (err) {
-            setError(err.message);
+            toast.error(err.message);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '450px' }}>
-                <h2 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '2rem' }}>
-                    {isLogin ? 'Welcome Back' : 'Create Account'}
-                </h2>
+        <div className="min-h-[80vh] flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-orange-50 to-white">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="max-w-md w-full space-y-8 card p-8 rounded-2xl shadow-xl bg-white"
+            >
+                <div>
+                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                        {isLogin ? 'Welcome Back' : 'Create Account'}
+                    </h2>
+                    <p className="mt-2 text-center text-sm text-gray-600">
+                        {isLogin ? 'Sign in to manage your devices' : 'Join the secure network today'}
+                    </p>
+                </div>
 
-                {error && <div style={{ background: '#ffebee', color: 'var(--danger)', padding: '10px', borderRadius: '8px', marginBottom: '20px' }}>{error}</div>}
+                <form className="mt-8 space-y-6" onSubmit={onSubmit}>
+                    <AnimatePresence mode='wait'>
+                        {!isLogin && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="space-y-4"
+                            >
+                                <AnimatedInput label="Full Name" name="name" type="text" value={formData.name} onChange={onChange} required />
+                                <AnimatedInput label="NIN (National ID)" name="nin" type="text" value={formData.nin} onChange={onChange} required placeholder="e.g. 12345678901" />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
-                <form onSubmit={onSubmit}>
+                    <AnimatedInput label="Email Address" name="email" type="email" value={formData.email} onChange={onChange} required />
+                    <AnimatedInput label="Password" name="password" type="password" value={formData.password} onChange={onChange} required />
+
                     {!isLogin && (
-                        <div className="input-group">
-                            <label style={{ display: 'block', marginBottom: '5px' }}>Full Name</label>
-                            <input type="text" name="name" value={formData.name} onChange={onChange} className="input-field" required />
-                        </div>
-                    )}
-
-                    <div className="input-group">
-                        <label style={{ display: 'block', marginBottom: '5px' }}>Email Address</label>
-                        <input type="email" name="email" value={formData.email} onChange={onChange} className="input-field" required />
-                    </div>
-
-                    <div className="input-group">
-                        <label style={{ display: 'block', marginBottom: '5px' }}>Password</label>
-                        <input type="password" name="password" value={formData.password} onChange={onChange} className="input-field" required />
-                    </div>
-
-                    {!isLogin && (
-                        <div className="input-group">
-                            <label style={{ display: 'block', marginBottom: '5px' }}>Account Type</label>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="input-group"
+                        >
+                            <label className="block mb-2 font-semibold text-gray-700">Account Type</label>
                             <select name="role" value={formData.role} onChange={onChange} className="input-field">
                                 <option value="basic">Basic (Individual)</option>
                                 <option value="vendor">Vendor (Business)</option>
                             </select>
-                            <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
-                                {formData.role === 'basic' ? 'Basic: Limits to 2 transfers/month.' : 'Vendor: Unlimited access (Subscription needed).'}
+                            <small className="block mt-2 text-xs text-gray-500">
+                                {formData.role === 'basic' ? 'Basic: 2 free verifications/month.' : 'Vendor: Unlimited access (Subscription needed).'}
                             </small>
-                        </div>
+                        </motion.div>
                     )}
 
-                    <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
-                        {loading ? 'Processing...' : (isLogin ? 'Login' : 'Sign Up')}
-                    </button>
+                    <AnimatedButton type="submit" loading={loading} className="w-full flex justify-center">
+                        {isLogin ? 'Sign In' : 'Create Account'}
+                    </AnimatedButton>
                 </form>
 
-                <p style={{ textAlign: 'center', marginTop: '20px' }}>
-                    {isLogin ? "Don't have an account? " : "Already have an account? "}
+                <div className="text-center mt-4">
                     <button
                         onClick={() => setIsLogin(!isLogin)}
-                        style={{ background: 'none', color: 'var(--primary)', fontWeight: 'bold' }}
+                        className="text-orange-600 hover:text-orange-500 font-medium transition-colors"
                     >
-                        {isLogin ? 'Register' : 'Login'}
+                        {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Login"}
                     </button>
-                </p>
-            </div>
+                </div>
+            </motion.div>
         </div>
     );
 }

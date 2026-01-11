@@ -8,13 +8,18 @@ const User = require('../models/User');
 // @desc    Register a user
 // @access  Public
 router.post('/register', async (req, res) => {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, nin } = req.body;
 
     try {
         let user = await User.findOne({ email });
 
         if (user) {
             return res.status(400).json({ msg: 'User already exists' });
+        }
+
+        user = await User.findOne({ nin });
+        if (user) {
+            return res.status(400).json({ msg: 'NIN already registered' });
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -24,7 +29,8 @@ router.post('/register', async (req, res) => {
             name,
             email,
             password: hashedPassword,
-            role: role || 'basic'
+            role: role || 'basic',
+            nin
         });
 
         await user.save();

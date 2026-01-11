@@ -72,7 +72,12 @@ router.get('/lookup/:query', async (req, res) => {
         // Find by serial OR imei
         const device = await Device.findOne({
             $or: [{ serialNumber: query }, { imei: query }]
-        }).populate('owner', 'name email').populate('history.owner', 'name');
+        })
+            .populate('owner', 'name email nin')
+            .populate({
+                path: 'history.owner',
+                select: 'name email nin'
+            });
 
         if (!device) {
             return res.status(404).json({ msg: 'Device not found' });
