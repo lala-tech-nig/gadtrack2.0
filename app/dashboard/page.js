@@ -192,6 +192,15 @@ export default function Dashboard() {
                     <h1 style={{ fontSize: '1.875rem', fontWeight: '700' }}>Dashboard</h1>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <span style={{ color: 'var(--text-secondary)' }}>Welcome, <span className="text-primary font-semibold">{user.name}</span></span>
+                        {user.role === 'admin' && (
+                            <button
+                                onClick={() => router.push('/admin')}
+                                className="btn btn-primary"
+                                style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
+                            >
+                                🛡️ Admin Panel
+                            </button>
+                        )}
                         <button onClick={() => { localStorage.clear(); router.push('/auth'); }} style={{ background: 'none', border: 'none', color: 'var(--danger)', fontWeight: '500', fontSize: '0.875rem', cursor: 'pointer' }}>Logout</button>
                     </div>
                 </div>
