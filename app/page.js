@@ -31,27 +31,27 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--surface)' }}>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-orange-50 to-white pt-20 pb-32">
-        <div className="container mx-auto px-4 relative z-10">
+      <section className="hero-section">
+        <div className="container" style={{ position: 'relative', zIndex: 10 }}>
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="text-center max-w-3xl mx-auto"
+            style={{ maxWidth: '800px', margin: '0 auto' }}
           >
-            <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 tracking-tight mb-6">
-              Secure Your <span className="text-orange-600">Digital Life</span>
+            <h1 className="hero-title">
+              Secure Your <span className="text-primary">Digital Life</span>
             </h1>
-            <p className="text-xl text-gray-600 mb-10">
-              The #1 platform to eradicate gadget theft in Africa. key in your device history to verify ownership before you buy.
+            <p className="hero-subtitle">
+              The #1 platform to eradicate gadget theft in Africa. Key in your device history to verify ownership before you buy.
             </p>
 
-            <form onSubmit={handleLookup} className="relative max-w-xl mx-auto shadow-2xl rounded-full">
+            <form onSubmit={handleLookup} className="search-container">
               <input
                 type="text"
-                className="w-full px-8 py-5 text-lg rounded-full border-2 border-transparent focus:border-orange-500 outline-none transition-all placeholder-gray-400"
+                className="search-input"
                 placeholder="Enter IMEI or Serial Number..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -59,17 +59,13 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={loading}
-                className="absolute right-2 top-2 bottom-2 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-8 rounded-full transition-colors disabled:opacity-70"
+                className="btn btn-primary search-btn"
               >
                 {loading ? 'Scanning...' : 'Trace It'}
               </button>
             </form>
           </motion.div>
         </div>
-
-        {/* Decorative Circles */}
-        <div className="absolute top-0 left-0 w-64 h-64 bg-orange-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
       </section>
 
       {/* Result Section */}
@@ -79,55 +75,57 @@ export default function Home() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="container mx-auto px-4 -mt-20 relative z-20 pb-20"
+            className="container"
+            style={{ marginTop: '-4rem', position: 'relative', zIndex: 20, paddingBottom: '4rem' }}
           >
-            <div className={`mx-auto max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden border-t-8 ${result.status === 'stolen' ? 'border-red-500' : 'border-green-500'}`}>
+            <div className="card" style={{ padding: 0, overflow: 'hidden', borderTop: `8px solid ${result.status === 'stolen' ? 'var(--danger)' : 'var(--success)'}` }}>
 
               {/* Header */}
-              <div className="p-8 md:p-12 border-b border-gray-100 bg-gray-50">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <div style={{ padding: '2rem 3rem', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-900">{result.brand} {result.model}</h2>
-                    <p className="text-gray-500 mt-1">SN: {result.serialNumber} • IMEI: {result.imei || 'N/A'}</p>
+                    <h2 style={{ fontSize: '2rem', fontWeight: '800' }}>{result.brand} {result.model}</h2>
+                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>SN: {result.serialNumber} • IMEI: {result.imei || 'N/A'}</p>
                   </div>
-                  <span className={`px-6 py-2 rounded-full text-lg font-bold uppercase tracking-wider ${result.status === 'stolen' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                  <span className={`badge ${result.status === 'stolen' ? 'badge-stolen' : 'badge-active'}`} style={{ fontSize: '1rem', padding: '0.5rem 1.5rem' }}>
                     {result.status}
                   </span>
                 </div>
               </div>
 
               {/* Grid Details */}
-              <div className="p-8 md:p-12 grid grid-cols-1 md:grid-cols-2 gap-12">
-                <div className="space-y-6">
+              <div style={{ padding: '2rem 3rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '3rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">Device Details</h3>
-                    <div className="bg-gray-50 p-6 rounded-xl space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Color</span>
-                        <span className="font-medium">{result.color || 'N/A'}</span>
+                    <h3 style={{ fontSize: '0.875rem', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-light)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>Device Details</h3>
+                    <div style={{ backgroundColor: 'var(--surface)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Color</span>
+                        <span className="font-semibold">{result.color || 'N/A'}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Current Owner</span>
-                        <span className="font-medium text-gray-900">{result.owner?.name ? `${result.owner.name.substring(0, 3)}***` : 'Unknown'}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Current Owner</span>
+                        <span className="font-semibold">{result.owner?.name ? `${result.owner.name.substring(0, 3)}***` : 'Unknown'}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Registered</span>
-                        <span className="font-medium">{new Date(result.createdAt).toLocaleDateString()}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Registered</span>
+                        <span className="font-semibold">{new Date(result.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
 
                   {result.status !== 'stolen' ? (
-                    <div className="bg-orange-50 border border-orange-100 p-6 rounded-xl">
-                      <p className="text-orange-800 mb-4 font-medium">✨ Interested in this device?</p>
-                      <Link href="/auth" className="block w-full text-center bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg transition-colors">
+                    <div style={{ backgroundColor: 'var(--surface-hover)', border: '1px solid var(--primary-light)', padding: '1.5rem', borderRadius: 'var(--radius-lg)' }}>
+                      <p style={{ color: 'var(--primary-dark)', marginBottom: '1rem', fontWeight: '500' }}>✨ Interested in this device?</p>
+                      <Link href="/auth" className="btn btn-primary" style={{ width: '100%', textDecoration: 'none' }}>
                         Login to Request Transfer
                       </Link>
                     </div>
                   ) : (
                     <button
                       onClick={() => toast.success('Police notified! Stay safe.')}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl shadow-lg animate-pulse"
+                      className="btn btn-danger"
+                      style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', animation: 'pulse 1.5s infinite' }}
                     >
                       ⚠ REPORT DEVICE FOUND
                     </button>
@@ -136,22 +134,20 @@ export default function Home() {
 
                 {/* Timeline History */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Ownership History</h3>
-                  <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-300 before:to-transparent">
+                  <h3 style={{ fontSize: '0.875rem', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-light)', marginBottom: '1rem', letterSpacing: '0.05em' }}>Ownership History</h3>
+                  <div className="timeline">
                     {result.history && result.history.map((record, idx) => (
-                      <div key={idx} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-gray-100 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
-                          <div className={`w-3 h-3 rounded-full ${record.action.includes('stolen') ? 'bg-red-500' : 'bg-green-500'}`}></div>
-                        </div>
-                        <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                          <div className="flex items-center justify-between space-x-2 mb-1">
-                            <div className="font-bold text-gray-900">{record.action.replace(/_/g, ' ')}</div>
-                            <time className="font-caveat font-medium text-orange-500 text-sm">
+                      <div key={idx} className="timeline-item">
+                        <div className={`timeline-dot ${record.action.includes('stolen') ? 'timeline-dot-danger' : 'timeline-dot-success'}`}></div>
+                        <div className="timeline-content">
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                            <div className="font-bold">{record.action.replace(/_/g, ' ')}</div>
+                            <time className="timeline-date">
                               {new Date(record.date).toLocaleDateString()}
                             </time>
                           </div>
-                          <div className="text-gray-500 text-sm">
-                            Owner: <span className="font-medium text-gray-900">{record.owner?.name || 'System'}</span>
+                          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                            Owner: <span className="font-semibold">{record.owner?.name || 'System'}</span>
                           </div>
                         </div>
                       </div>
@@ -165,17 +161,17 @@ export default function Home() {
       </AnimatePresence>
 
       {/* Features Grid */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="grid md:grid-cols-3 gap-8">
+      <section className="container">
+        <div className="features-grid">
           {[
             { title: 'Register Gadgets', desc: 'Secure digital vault for all your devices.', icon: '🛡️' },
             { title: 'Transfer Ownership', desc: 'Legally transfer devices to new owners.', icon: '🤝' },
             { title: 'Verify History', desc: 'Check device lifecycle before buying.', icon: '🔍' }
           ].map((feature, i) => (
-            <div key={i} className="group p-8 rounded-2xl bg-white border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">{feature.icon}</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">{feature.title}</h3>
-              <p className="text-gray-600">{feature.desc}</p>
+            <div key={i} className="feature-card">
+              <div className="feature-icon">{feature.icon}</div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem' }}>{feature.title}</h3>
+              <p style={{ color: 'var(--text-secondary)' }}>{feature.desc}</p>
             </div>
           ))}
         </div>

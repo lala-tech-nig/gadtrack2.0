@@ -57,30 +57,31 @@ export default function AuthPage() {
     };
 
     return (
-        <div className="min-h-[80vh] flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-orange-50 to-white">
+        <div className="container" style={{ minHeight: '85vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="max-w-md w-full space-y-8 card p-8 rounded-2xl shadow-xl bg-white"
+                className="card"
+                style={{ width: '100%', maxWidth: '450px' }}
             >
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                    <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.5rem' }}>
                         {isLogin ? 'Welcome Back' : 'Create Account'}
                     </h2>
-                    <p className="mt-2 text-center text-sm text-gray-600">
+                    <p style={{ color: 'var(--text-secondary)' }}>
                         {isLogin ? 'Sign in to manage your devices' : 'Join the secure network today'}
                     </p>
                 </div>
 
-                <form className="mt-8 space-y-6" onSubmit={onSubmit}>
+                <form onSubmit={onSubmit}>
                     <AnimatePresence mode='wait'>
                         {!isLogin && (
                             <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
-                                className="space-y-4"
+                                style={{ overflow: 'hidden' }}
                             >
                                 <AnimatedInput label="Full Name" name="name" type="text" value={formData.name} onChange={onChange} required />
                                 <AnimatedInput label="NIN (National ID)" name="nin" type="text" value={formData.nin} onChange={onChange} required placeholder="e.g. 12345678901" />
@@ -97,26 +98,28 @@ export default function AuthPage() {
                             animate={{ opacity: 1 }}
                             className="input-group"
                         >
-                            <label className="block mb-2 font-semibold text-gray-700">Account Type</label>
+                            <label className="input-label">Account Type</label>
                             <select name="role" value={formData.role} onChange={onChange} className="input-field">
                                 <option value="basic">Basic (Individual)</option>
                                 <option value="vendor">Vendor (Business)</option>
                             </select>
-                            <small className="block mt-2 text-xs text-gray-500">
+                            <small style={{ display: 'block', marginTop: '5px', fontSize: '0.75rem', color: '#666' }}>
                                 {formData.role === 'basic' ? 'Basic: 2 free verifications/month.' : 'Vendor: Unlimited access (Subscription needed).'}
                             </small>
                         </motion.div>
                     )}
 
-                    <AnimatedButton type="submit" loading={loading} className="w-full flex justify-center">
-                        {isLogin ? 'Sign In' : 'Create Account'}
-                    </AnimatedButton>
+                    <div style={{ marginTop: '1.5rem' }}>
+                        <AnimatedButton type="submit" loading={loading} className="btn-primary" style={{ width: '100%' }}>
+                            {isLogin ? 'Sign In' : 'Create Account'}
+                        </AnimatedButton>
+                    </div>
                 </form>
 
-                <div className="text-center mt-4">
+                <div className="text-center" style={{ marginTop: '1.5rem', textAlign: 'center' }}>
                     <button
                         onClick={() => setIsLogin(!isLogin)}
-                        className="text-orange-600 hover:text-orange-500 font-medium transition-colors"
+                        style={{ background: 'none', color: 'var(--primary)', fontWeight: '600', cursor: 'pointer', border: 'none' }}
                     >
                         {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Login"}
                     </button>

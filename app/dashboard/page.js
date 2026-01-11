@@ -108,26 +108,35 @@ export default function Dashboard() {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-12">
+        <div style={{ minHeight: '100vh', paddingBottom: '3rem' }}>
             {/* Header */}
-            <header className="bg-white shadow">
-                <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-                    <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-                    <div className="flex items-center space-x-4">
-                        <span className="text-gray-500">Welcome, <span className="font-semibold text-orange-600">{user.name}</span></span>
-                        <button onClick={() => { localStorage.clear(); router.push('/auth'); }} className="text-sm text-red-500 hover:text-red-700 font-medium">Logout</button>
+            <header className="navbar" style={{ marginBottom: '2rem' }}>
+                <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h1 style={{ fontSize: '1.875rem', fontWeight: '700' }}>Dashboard</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Welcome, <span className="text-primary font-semibold">{user.name}</span></span>
+                        <button onClick={() => { localStorage.clear(); router.push('/auth'); }} style={{ background: 'none', border: 'none', color: 'var(--danger)', fontWeight: '500', fontSize: '0.875rem', cursor: 'pointer' }}>Logout</button>
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <main className="container">
                 {/* Tabs */}
-                <div className="flex space-x-4 border-b border-gray-200 mb-6">
+                <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '1.5rem' }}>
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`py-2 px-4 font-medium transition-colors border-b-2 ${activeTab === tab.id ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                            style={{
+                                padding: '0.5rem 1rem',
+                                fontWeight: '500',
+                                background: 'none',
+                                border: 'none',
+                                borderBottom: activeTab === tab.id ? '2px solid var(--primary)' : '2px solid transparent',
+                                color: activeTab === tab.id ? 'var(--primary)' : 'var(--text-light)',
+                                cursor: 'pointer',
+                                transition: 'var(--transition)'
+                            }}
                         >
                             {tab.label}
                         </button>
@@ -141,20 +150,19 @@ export default function Dashboard() {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
-                            className="space-y-6"
                         >
                             {/* Stats / Quick Actions */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="bg-white p-6 rounded-lg shadow-sm border border-orange-100">
-                                    <h3 className="text-lg font-semibold text-gray-900">Total Devices</h3>
-                                    <p className="text-3xl font-bold text-orange-600 mt-2">{devices.length}</p>
+                            <div className="stats-grid">
+                                <div className="stat-card">
+                                    <h3 style={{ fontSize: '1.125rem', fontWeight: '600' }}>Total Devices</h3>
+                                    <p className="stat-value">{devices.length}</p>
                                 </div>
-                                <div className="bg-white p-6 rounded-lg shadow-sm border border-orange-100">
-                                    <h3 className="text-lg font-semibold text-gray-900">Pending Transfers</h3>
-                                    <p className="text-3xl font-bold text-blue-600 mt-2">{transfers.length}</p>
+                                <div className="stat-card">
+                                    <h3 style={{ fontSize: '1.125rem', fontWeight: '600' }}>Pending Transfers</h3>
+                                    <p className="stat-value" style={{ color: '#2563EB' }}>{transfers.length}</p>
                                 </div>
                                 <div className="flex items-center">
-                                    <AnimatedButton onClick={() => setShowAddForm(!showAddForm)} className="w-full h-full justify-center text-lg">
+                                    <AnimatedButton onClick={() => setShowAddForm(!showAddForm)} className="btn-primary" style={{ width: '100%', height: '100%', fontSize: '1.125rem' }}>
                                         {showAddForm ? 'Cancel Registration' : '+ Register Device'}
                                     </AnimatedButton>
                                 </div>
@@ -167,18 +175,19 @@ export default function Dashboard() {
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         exit={{ opacity: 0, height: 0 }}
-                                        className="bg-white p-6 rounded-lg shadow-md overflow-hidden"
+                                        className="card"
+                                        style={{ overflow: 'hidden', marginBottom: '2rem' }}
                                     >
-                                        <h3 className="text-xl font-bold mb-4">Register New Gadget</h3>
-                                        <form onSubmit={handleAddDevice} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '1rem' }}>Register New Gadget</h3>
+                                        <form onSubmit={handleAddDevice} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
                                             <AnimatedInput label="Brand" name="brand" value={newDevice.brand} onChange={e => setNewDevice({ ...newDevice, brand: e.target.value })} required />
                                             <AnimatedInput label="Model" name="model" value={newDevice.model} onChange={e => setNewDevice({ ...newDevice, model: e.target.value })} required />
                                             <AnimatedInput label="Serial Number" name="serialNumber" value={newDevice.serialNumber} onChange={e => setNewDevice({ ...newDevice, serialNumber: e.target.value })} required />
                                             <AnimatedInput label="Color" name="color" value={newDevice.color} onChange={e => setNewDevice({ ...newDevice, color: e.target.value })} />
                                             <AnimatedInput label="IMEI (Optional)" name="imei" value={newDevice.imei} onChange={e => setNewDevice({ ...newDevice, imei: e.target.value })} />
                                             <AnimatedInput label="Details" name="details" value={newDevice.details} onChange={e => setNewDevice({ ...newDevice, details: e.target.value })} />
-                                            <div className="md:col-span-2 pt-4">
-                                                <AnimatedButton type="submit">Complete Registration</AnimatedButton>
+                                            <div style={{ gridColumn: '1 / -1', paddingTop: '1rem' }}>
+                                                <AnimatedButton type="submit" className="btn-primary">Complete Registration</AnimatedButton>
                                             </div>
                                         </form>
                                     </motion.div>
@@ -186,23 +195,24 @@ export default function Dashboard() {
                             </AnimatePresence>
 
                             {/* Device List */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                                 {devices.map(device => (
-                                    <Link href={`/device/${device._id}`} key={device._id}>
+                                    <Link href={`/device/${device._id}`} key={device._id} style={{ display: 'block' }}>
                                         <motion.div
                                             whileHover={{ y: -5 }}
-                                            className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow border border-gray-100"
+                                            className="card"
+                                            style={{ cursor: 'pointer' }}
                                         >
-                                            <div className="flex justify-between items-start mb-4">
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                                                 <div>
-                                                    <h3 className="text-lg font-bold text-gray-900">{device.brand}</h3>
-                                                    <p className="text-gray-600">{device.model}</p>
+                                                    <h3 style={{ fontSize: '1.125rem', fontWeight: '700' }}>{device.brand}</h3>
+                                                    <p style={{ color: 'var(--text-secondary)' }}>{device.model}</p>
                                                 </div>
-                                                <span className={`px-2 py-1 text-xs font-bold rounded uppercase ${device.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                <span className={`badge ${device.status === 'active' ? 'badge-active' : 'badge-stolen'}`}>
                                                     {device.status}
                                                 </span>
                                             </div>
-                                            <div className="text-sm text-gray-500 space-y-1">
+                                            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                                                 <p>SN: {device.serialNumber}</p>
                                                 <p>Color: {device.color}</p>
                                             </div>
@@ -219,10 +229,11 @@ export default function Dashboard() {
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
-                            className="bg-white p-8 rounded-lg shadow max-w-2xl mx-auto"
+                            className="card"
+                            style={{ maxWidth: '42rem', margin: '0 auto' }}
                         >
-                            <h2 className="text-2xl font-bold mb-6">Profile Settings</h2>
-                            <form onSubmit={handleUpdateProfile} className="space-y-6">
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1.5rem' }}>Profile Settings</h2>
+                            <form onSubmit={handleUpdateProfile}>
                                 <AnimatedInput
                                     label="Full Name"
                                     value={profileData.name}
@@ -234,10 +245,10 @@ export default function Dashboard() {
                                     onChange={e => setProfileData({ ...profileData, nin: e.target.value })}
                                     placeholder="Enter your NIN"
                                 />
-                                <div className="pt-4 border-t border-gray-100">
-                                    <p className="text-sm text-gray-500 mb-4">Role: <span className="font-semibold uppercase text-orange-600">{user.role}</span></p>
-                                    <p className="text-sm text-gray-500 mb-6">Email: <span className="font-semibold text-gray-900">{user.email}</span></p>
-                                    <AnimatedButton type="submit" loading={loadingProfile}>
+                                <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--border)', marginTop: '1.5rem' }}>
+                                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Role: <span className="text-primary font-semibold" style={{ textTransform: 'uppercase' }}>{user.role}</span></p>
+                                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Email: <span style={{ color: 'var(--text-main)', fontWeight: '600' }}>{user.email}</span></p>
+                                    <AnimatedButton type="submit" loading={loadingProfile} className="btn-primary">
                                         Update Profile
                                     </AnimatedButton>
                                 </div>

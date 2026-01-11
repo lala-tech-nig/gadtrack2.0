@@ -1,4 +1,4 @@
-"use client";
+
 
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -17,27 +17,21 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={inter.className}>
         {/* Navbar */}
-        <nav className="p-4 border-b flex justify-between items-center">
-          <h1 className="font-bold text-lg">TraceIt</h1>
-
-          <Link href="/auth" className="btn btn-primary">
-            Login / Register
-          </Link>
+        <nav className="navbar">
+          <div className="container nav-container">
+            <Link href="/" className="logo">TraceIt</Link>
+            <Link href="/auth" className="btn btn-primary">Login / Register</Link>
+          </div>
         </nav>
 
         {/* Page Content */}
         <main>{children}</main>
 
         {/* Footer */}
-        <footer
-          style={{
-            textAlign: 'center',
-            padding: '40px',
-            marginTop: '40px',
-            background: '#f5f5f5',
-          }}
-        >
-          <p>&copy; {new Date().getFullYear()} Gadtrack. Secure your gadgets.</p>
+        <footer className="footer">
+          <div className="container">
+            <p>&copy; {new Date().getFullYear()} Gadtrack. Secure your gadgets.</p>
+          </div>
         </footer>
 
         {/* Toasts */}
