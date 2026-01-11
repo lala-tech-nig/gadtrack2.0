@@ -1,8 +1,14 @@
+@import "tailwindcss";
+
 :root {
-  --primary: #FF8C00; /* Dark Orange */
-  --primary-light: #FFA500; /* Orange */
-  --secondary: #000000; /* Black */
-  --background: #FFFFFF; /* White */
+  --primary: #FF8C00;
+  /* Dark Orange */
+  --primary-light: #FFA500;
+  /* Orange */
+  --secondary: #000000;
+  /* Black */
+  --background: #FFFFFF;
+  /* White */
   --text-main: #1a1a1a;
   --text-light: #f5f5f5;
   --danger: #ff4444;
@@ -48,24 +54,51 @@ button {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes confetti {
-    0% { transform: translateY(0) rotate(0); opacity: 1; }
-    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  0% {
+    transform: translateY(0) rotate(0);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
 }
 
 .animate-fade-in {
@@ -120,13 +153,13 @@ button {
   background: var(--card-bg);
   padding: 2rem;
   border-radius: var(--border-radius);
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   transition: var(--transition);
 }
 
 .card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 
 .input-group {
