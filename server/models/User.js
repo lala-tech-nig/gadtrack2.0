@@ -21,9 +21,26 @@ const UserSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['basic', 'vendor', 'admin'],
+        enum: ['basic', 'vendor', 'enterprise_admin', 'store_manager', 'admin'],
         default: 'basic'
     },
+    usageLimit: {
+        count: { type: Number, default: 0 },
+        month: { type: String, default: () => new Date().toISOString().slice(0, 7) } // YYYY-MM
+    },
+    isVendorActive: {
+        type: Boolean,
+        default: false
+    },
+    enterpriseId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Enterprise' // Will point to User (Enterprise Admin) or Store? Let's use Store logic or just grouping
+    },
+    isAccountSuspended: {
+        type: Boolean,
+        default: false
+    },
+    // subscriptions
     subscriptionStatus: {
         type: String,
         enum: ['active', 'inactive'],
@@ -31,7 +48,7 @@ const UserSchema = new mongoose.Schema({
     },
     credits: {
         type: Number,
-        default: 2 // 2 free transfers/lookups per month for basic
+        default: 0 // Extra paid slots. Base limit is 2/month logic-based.
     },
     createdAt: {
         type: Date,

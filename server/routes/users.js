@@ -17,6 +17,19 @@ const auth = (req, res, next) => {
     }
 };
 
+// @route   GET /api/users
+// @desc    Get all users (Admin only for now, can add admin check)
+// @access  Private
+router.get('/', auth, async (req, res) => {
+    try {
+        const users = await User.find().select('-password').sort({ createdAt: -1 });
+        res.json(users);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
 // @route   PUT /api/users/profile
 // @desc    Update user profile
 // @access  Private

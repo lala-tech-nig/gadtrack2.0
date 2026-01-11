@@ -6,11 +6,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import AnimatedInput from '../components/AnimatedInput';
 import AnimatedButton from '../components/AnimatedButton';
+import PaymentModal from '../components/PaymentModal';
 
 export default function Dashboard() {
     const [user, setUser] = useState(null);
-    const [activeTab, setActiveTab] = useState('overview'); // overview, profile
+    const [activeTab, setActiveTab] = useState('overview'); // overview, profile, history
     const [devices, setDevices] = useState([]);
+    const [deviceHistory, setDeviceHistory] = useState([]);
     const [transfers, setTransfers] = useState([]);
     const [showAddForm, setShowAddForm] = useState(false);
     const [newDevice, setNewDevice] = useState({ brand: '', model: '', serialNumber: '', imei: '', color: '', details: '' });
@@ -18,6 +20,11 @@ export default function Dashboard() {
     // Profile State
     const [profileData, setProfileData] = useState({ name: '', nin: '' });
     const [loadingProfile, setLoadingProfile] = useState(false);
+
+    // Payment Modal State
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentInfo, setPaymentInfo] = useState(null);
+    const [pendingAction, setPendingAction] = useState(null); // { type: 'addDevice' | 'acceptTransfer', data: any }
 
     const router = useRouter();
 
@@ -36,13 +43,15 @@ export default function Dashboard() {
 
     const fetchData = async (token) => {
         try {
-            const [devRes, transRes] = await Promise.all([
+            const [devRes, transRes, historyRes] = await Promise.all([
                 fetch('/api/devices/my-devices', { headers: { 'x-auth-token': token } }),
-                fetch('/api/transfers/pending', { headers: { 'x-auth-token': token } })
+                fetch('/api/transfers/pending', { headers: { 'x-auth-token': token } }),
+                fetch('/api/devices/my-devices/history', { headers: { 'x-auth-token': token } })
             ]);
 
             if (devRes.ok) setDevices(await devRes.json());
             if (transRes.ok) setTransfers(await transRes.json());
+            if (historyRes.ok) setDeviceHistory(await historyRes.json());
         } catch (err) {
             console.error(err);
             toast.error('Failed to load dashboard data');
@@ -77,6 +86,34 @@ export default function Dashboard() {
         }
     };
 
+    const handleAcceptTransfer = async (transferId) => {
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch(`/api/transfers/${transferId}/accept`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': token }
+            });
+            const data = await res.json();
+
+            if (res.status === 402 && data.requiresPayment) {
+                // Show payment modal
+                setPaymentInfo({ type: data.paymentType, amount: data.amount });
+                setPendingAction({ type: 'acceptTransfer', data: transferId });
+                setShowPaymentModal(true);
+                return;
+            }
+
+            if (res.ok) {
+                toast.success('Transfer accepted successfully!');
+                fetchData(token); // Refresh data
+            } else {
+                toast.error(data.msg || 'Failed to accept transfer');
+            }
+        } catch (err) {
+            toast.error('Error accepting transfer');
+        }
+    };
+
     const handleAddDevice = async (e) => {
         e.preventDefault();
         const token = localStorage.getItem('token');
@@ -86,13 +123,23 @@ export default function Dashboard() {
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify(newDevice)
             });
+
+            const data = await res.json();
+
+            if (res.status === 402 && data.requiresPayment) {
+                // Show payment modal
+                setPaymentInfo({ type: data.paymentType, amount: data.amount });
+                setPendingAction({ type: 'addDevice', data: newDevice });
+                setShowPaymentModal(true);
+                return;
+            }
+
             if (res.ok) {
                 setShowAddForm(false);
                 setNewDevice({ brand: '', model: '', serialNumber: '', imei: '', color: '', details: '' });
                 fetchData(token);
                 toast.success('Device registered successfully!');
             } else {
-                const data = await res.json();
                 toast.error(data.msg);
             }
         } catch (err) {
@@ -100,10 +147,40 @@ export default function Dashboard() {
         }
     };
 
+    const handlePaymentSuccess = (updatedUser) => {
+        setUser(updatedUser);
+        toast.success('Payment successful!');
+
+        // Retry the pending action
+        if (pendingAction) {
+            if (pendingAction.type === 'addDevice') {
+                // Retry device registration
+                const token = localStorage.getItem('token');
+                fetch('/api/devices', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                    body: JSON.stringify(pendingAction.data)
+                }).then(res => res.json()).then(data => {
+                    if (data._id) {
+                        setShowAddForm(false);
+                        setNewDevice({ brand: '', model: '', serialNumber: '', imei: '', color: '', details: '' });
+                        fetchData(token);
+                        toast.success('Device registered successfully!');
+                    }
+                });
+            } else if (pendingAction.type === 'acceptTransfer') {
+                // Retry transfer acceptance
+                handleAcceptTransfer(pendingAction.data);
+            }
+            setPendingAction(null);
+        }
+    };
+
     if (!user) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
     const tabs = [
         { id: 'overview', label: 'Overview' },
+        { id: 'history', label: 'Device History' },
         { id: 'profile', label: 'My Profile' }
     ];
 
@@ -119,6 +196,47 @@ export default function Dashboard() {
                     </div>
                 </div>
             </header>
+
+            {/* Vendor Activation Banner */}
+            {user && user.role === 'vendor' && !user.isVendorActive && (
+                <div className="container" style={{ marginBottom: '2rem' }}>
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                            backgroundColor: '#FEF3C7',
+                            border: '2px solid #FCD34D',
+                            borderRadius: 'var(--radius-lg)',
+                            padding: '1.5rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '1rem'
+                        }}
+                    >
+                        <div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#92400E', marginBottom: '0.5rem' }}>
+                                🚀 Activate Your Vendor Account
+                            </h3>
+                            <p style={{ color: '#78350F', fontSize: '0.9rem' }}>
+                                Pay ₦10,000 one-time fee to unlock unlimited device registrations and transfers.
+                            </p>
+                        </div>
+                        <AnimatedButton
+                            onClick={() => {
+                                setPaymentInfo({ type: 'vendor_activation', amount: 10000 });
+                                setPendingAction(null);
+                                setShowPaymentModal(true);
+                            }}
+                            className="btn-primary"
+                            style={{ backgroundColor: '#D97706' }}
+                        >
+                            Activate Now
+                        </AnimatedButton>
+                    </motion.div>
+                </div>
+            )}
 
             <main className="container">
                 {/* Tabs */}
@@ -167,6 +285,40 @@ export default function Dashboard() {
                                     </AnimatedButton>
                                 </div>
                             </div>
+
+                            {/* Pending Transfers Section */}
+                            <AnimatePresence>
+                                {transfers.length > 0 && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        style={{ marginBottom: '2rem' }}
+                                    >
+                                        <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '1rem', color: '#2563EB' }}>Pending Transfers ({transfers.length})</h3>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+                                            {transfers.map(transfer => (
+                                                <div key={transfer._id} className="card" style={{ borderLeft: '4px solid #2563EB', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                    <div>
+                                                        <h4 style={{ fontWeight: '700', fontSize: '1.1rem' }}>{transfer.device.brand} {transfer.device.model}</h4>
+                                                        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>SN: {transfer.device.serialNumber}</p>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.9rem', padding: '0.5rem', backgroundColor: 'var(--surface)', borderRadius: 'var(--radius-sm)' }}>
+                                                        From: <strong>{transfer.fromUser?.name || 'Unknown'}</strong>
+                                                    </div>
+                                                    <AnimatedButton
+                                                        onClick={() => handleAcceptTransfer(transfer._id)}
+                                                        className="btn-primary"
+                                                        style={{ width: '100%', backgroundColor: '#2563EB' }}
+                                                    >
+                                                        Accept Transfer
+                                                    </AnimatedButton>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
                             {/* Add Device Form */}
                             <AnimatePresence>
@@ -223,6 +375,63 @@ export default function Dashboard() {
                         </motion.div>
                     )}
 
+                    {activeTab === 'history' && (
+                        <motion.div
+                            key="history"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                        >
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1.5rem' }}>
+                                All Devices You've Ever Owned
+                            </h2>
+                            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+                                This includes devices you currently own and those you've transferred to others.
+                            </p>
+
+                            {deviceHistory.length === 0 ? (
+                                <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>No device history found.</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                                    {deviceHistory.map(device => (
+                                        <Link href={`/device/${device._id}`} key={device._id} style={{ display: 'block' }}>
+                                            <motion.div
+                                                whileHover={{ y: -5 }}
+                                                className="card"
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    opacity: device.transferredOut ? 0.7 : 1,
+                                                    borderLeft: device.transferredOut ? '4px solid var(--danger)' : '4px solid var(--success)'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                                    <div>
+                                                        <h3 style={{ fontSize: '1.125rem', fontWeight: '700' }}>{device.brand}</h3>
+                                                        <p style={{ color: 'var(--text-secondary)' }}>{device.model}</p>
+                                                    </div>
+                                                    <span className={`badge ${device.currentlyOwned ? 'badge-active' : 'badge-stolen'}`}>
+                                                        {device.currentlyOwned ? 'Current' : 'Transferred Out'}
+                                                    </span>
+                                                </div>
+                                                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                                                    <p>SN: {device.serialNumber}</p>
+                                                    <p>Color: {device.color || 'N/A'}</p>
+                                                    {device.transferredOut && (
+                                                        <p style={{ color: 'var(--danger)', fontWeight: '600', marginTop: '0.5rem' }}>
+                                                            ⚠ No longer in your possession
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+
                     {activeTab === 'profile' && (
                         <motion.div
                             key="profile"
@@ -257,6 +466,14 @@ export default function Dashboard() {
                     )}
                 </AnimatePresence>
             </main>
+
+            {/* Payment Modal */}
+            <PaymentModal
+                isOpen={showPaymentModal}
+                onClose={() => setShowPaymentModal(false)}
+                paymentInfo={paymentInfo}
+                onSuccess={handlePaymentSuccess}
+            />
         </div>
     );
 }

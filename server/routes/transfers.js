@@ -19,10 +19,12 @@ const auth = (req, res, next) => {
     }
 };
 
+const checkLimit = require('../middleware/checkLimit');
+
 // @route   POST /api/transfers
 // @desc    Initiate a transfer
 // @access  Private
-router.post('/', auth, async (req, res) => {
+router.post('/', [auth, checkLimit], async (req, res) => {
     const { deviceId, toUserEmail } = req.body;
 
     try {
@@ -46,6 +48,10 @@ router.post('/', auth, async (req, res) => {
         });
 
         await newTransfer.save();
+
+        // Increment Usage
+        if (req.incrementUsage) await req.incrementUsage();
+
         res.json(newTransfer);
     } catch (err) {
         console.error(err.message);
@@ -77,7 +83,7 @@ router.get('/pending', auth, async (req, res) => {
 // @route   PUT /api/transfers/:id/accept
 // @desc    Accept a transfer
 // @access  Private
-router.put('/:id/accept', auth, async (req, res) => {
+router.put('/:id/accept', [auth, checkLimit], async (req, res) => {
     try {
         const transfer = await Transfer.findById(req.params.id);
         if (!transfer) return res.status(404).json({ msg: 'Transfer not found' });
@@ -108,6 +114,9 @@ router.put('/:id/accept', auth, async (req, res) => {
         device.status = 'active';
 
         await device.save();
+
+        // Increment Usage
+        if (req.incrementUsage) await req.incrementUsage();
 
         res.json({ msg: 'Transfer successful', device });
 
