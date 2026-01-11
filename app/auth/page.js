@@ -3,10 +3,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import AnimatedInput from '../../components/AnimatedInput';
-import AnimatedButton from '../../components/AnimatedButton';
-import { triggerConfetti } from '../../utils/confetti';
-import { playWelcomeMessage } from '../../utils/voice';
+import AnimatedInput from '../components/AnimatedInput';
+import AnimatedButton from '../components/AnimatedButton';
+import { triggerConfetti } from '../utils/confetti';
+import { playWelcomeMessage } from '../utils/voice';
 
 export default function AuthPage() {
     const [isLogin, setIsLogin] = useState(true);
