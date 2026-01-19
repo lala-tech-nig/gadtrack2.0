@@ -199,6 +199,23 @@ export default function Home() {
                     ))}
                     {!result.history && <p className="text-muted">No history available.</p>}
                   </div>
+
+                  {/* Comments Section for Public Trace */}
+                  {result.comments && result.comments.length > 0 && (
+                    <div style={{ marginTop: '3rem' }}>
+                      <h3 style={{ fontSize: '0.875rem', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '1.5rem', letterSpacing: '0.05em' }}>Owner Comments & Notes</h3>
+                      <div className="card" style={{ background: '#f8fafc', padding: '1.5rem' }}>
+                        {result.comments.map((comment, i) => (
+                          <div key={i} style={{ borderBottom: i < result.comments.length - 1 ? '1px solid #eee' : 'none', paddingBottom: i < result.comments.length - 1 ? '1rem' : 0, marginBottom: i < result.comments.length - 1 ? '1rem' : 0 }}>
+                            <p style={{ fontStyle: 'italic', marginBottom: '0.5rem' }}>"{comment.text}"</p>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              Posted by <strong>{comment.user ? comment.user.name : 'Owner'}</strong> on {new Date(comment.date).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

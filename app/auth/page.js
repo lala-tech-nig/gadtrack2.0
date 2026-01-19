@@ -98,13 +98,18 @@ export default function AuthPage() {
                             animate={{ opacity: 1 }}
                             className="input-group"
                         >
-                            <label className="input-label">Account Type</label>
-                            <select name="role" value={formData.role} onChange={onChange} className="input-field">
+                            <label className="input-label" style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 600 }}>Account Type</label>
+                            <select name="role" value={formData.role} onChange={onChange} className="input-field" style={{ marginBottom: '0.5rem' }}>
                                 <option value="basic">Basic (Individual)</option>
                                 <option value="vendor">Vendor (Business)</option>
+                                <option value="technician">Technician (Repair & Service)</option>
+                                <option value="enterprise_admin">Enterprise (Large Scale)</option>
                             </select>
-                            <small style={{ display: 'block', marginTop: '5px', fontSize: '0.75rem', color: '#666' }}>
-                                {formData.role === 'basic' ? 'Basic: 2 free verifications/month.' : 'Vendor: Unlimited access (Subscription needed).'}
+                            <small style={{ display: 'block', marginTop: '5px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                {formData.role === 'basic' && 'Basic: 2 free verifications/month.'}
+                                {formData.role === 'vendor' && 'Vendor: Unlimited access (Subscription needed).'}
+                                {formData.role === 'technician' && 'Technician: Log repairs & unlimited access (Subscription needed).'}
+                                {formData.role === 'enterprise_admin' && 'Enterprise: Manage multiple stores & aggregations.'}
                             </small>
                         </motion.div>
                     )}

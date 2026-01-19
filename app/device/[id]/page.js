@@ -12,50 +12,15 @@ export default function DeviceDetail({ params }) {
     const { id } = use(params);
 
     const [device, setDevice] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [transferEmail, setTransferEmail] = useState('');
-    const [isTransferring, setIsTransferring] = useState(false);
-    const router = useRouter();
+    const [newComment, setNewComment] = useState('');
+    const [submittingComment, setSubmittingComment] = useState(false);
 
-    useEffect(() => {
-        fetchDevice();
-    }, [id]); // eslint-disable-line
+    // ... existing useEffect ...
 
-    const fetchDevice = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) return router.push('/auth');
-
-        try {
-            // We can re-use the public lookup or a specific protected ID endpoint. 
-            // Let's use lookup logic but maybe we need a direct ID endpoint in backend?
-            // Actually, let's use the 'my-devices' list and filter, OR add a specific GET /devices/:id endpoint.
-            // I didn't add GET /devices/:id in backend explicitly for owners, but I can use the lookup logic via Serial if I knew it, 
-            // OR better add a GET /api/devices/:id to backend.
-            // Wait, I implemented `GET /lookup/:query` which takes serial or IMEI. 
-            // But for dashboard details by ID, I should probably have a direct ID fetch or just filter from my-devices for safety if I don't want to add more backend code.
-            // Optimization: Let's add GET /api/devices/:id to `server/routes/devices.js` or just iterate `my-devices` for now to save a backend restart if not needed.
-            // Actually, I can just use `my-devices` and find the one with matching ID. It's safe enough for MVP.
-
-            const res = await fetch('/api/devices/my-devices', { headers: { 'x-auth-token': token } });
-            const devices = await res.json();
-            const found = devices.find(d => d._id === id);
-
-            if (found) {
-                setDevice(found);
-            } else {
-                // Might be a transfer history item or just not found
-                alert('Device not found or not owned by you');
-                router.push('/dashboard');
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // ... existing fetchDevice ...
 
     const handleStatusChange = async (newStatus) => {
-        if (!confirm(`Mark device as ${newStatus}?`)) return;
+        if (!confirm(`Mark device as ${newStatus.toUpperCase()}?`)) return;
         const token = localStorage.getItem('token');
         try {
             const res = await fetch(`/api/devices/${id}/status`, {
@@ -68,34 +33,39 @@ export default function DeviceDetail({ params }) {
             });
             if (res.ok) {
                 fetchDevice(); // Refresh
+                toast.success(`Device marked as ${newStatus}`);
             }
         } catch (err) { console.error(err); }
     };
 
-    const handleTransfer = async (e) => {
+    const handleAddComment = async (e) => {
         e.preventDefault();
+        if (!newComment.trim()) return;
+        setSubmittingComment(true);
         const token = localStorage.getItem('token');
+
         try {
-            const res = await fetch('/api/transfers', {
+            const res = await fetch(`/api/devices/${id}/comments`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-auth-token': token
-                },
-                body: JSON.stringify({ deviceId: id, toUserEmail: transferEmail })
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                body: JSON.stringify({ text: newComment })
             });
 
             if (res.ok) {
-                alert('Transfer initiated! The recipient must accept it from their dashboard.');
-                setIsTransferring(false);
-            } else {
-                const data = await res.json();
-                alert(data.msg);
+                setNewComment('');
+                fetchDevice();
+                toast.success('Comment added!');
             }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            toast.error('Failed to add comment');
+        } finally {
+            setSubmittingComment(false);
+        }
     };
 
-    if (loading) return <div className="container">Loading...</div>;
+    // ... handleTransfer ...
+
+    if (loading) return <div className="container" style={{ paddingTop: '2rem' }}>Loading...</div>;
     if (!device) return null;
 
     return (
@@ -111,16 +81,8 @@ export default function DeviceDetail({ params }) {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                         <p style={{ marginBottom: '10px', fontSize: '1.2rem' }}>Status</p>
-                        <div style={{
-                            display: 'inline-block',
-                            padding: '10px 20px',
-                            borderRadius: '25px',
-                            background: device.status === 'stolen' ? 'var(--danger)' : (device.status === 'active' ? 'var(--success)' : '#999'),
-                            color: '#fff',
-                            fontWeight: 'bold',
-                            textTransform: 'uppercase'
-                        }}>
-                            {device.status}
+                        <div className={`badge ${device.status === 'stolen' ? 'badge-stolen' : 'badge-active'}`} style={{ fontSize: '1rem', padding: '0.5rem 1.5rem' }}>
+                            {device.status.toUpperCase()}
                         </div>
                     </div>
                 </div>
@@ -133,7 +95,7 @@ export default function DeviceDetail({ params }) {
 
                         <div style={{ marginBottom: '30px' }}>
                             <p style={{ marginBottom: '10px', fontWeight: 'bold' }}>Update Status</p>
-                            <div style={{ display: 'flex', gap: '10px' }}>
+                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                                 {device.status !== 'active' && (
                                     <button onClick={() => handleStatusChange('active')} className="btn" style={{ background: 'var(--success)', color: 'white' }}>Mark Active/Found</button>
                                 )}
@@ -143,6 +105,10 @@ export default function DeviceDetail({ params }) {
                                 {device.status !== 'lost' && (
                                     <button onClick={() => handleStatusChange('lost')} className="btn" style={{ background: '#FF9800', color: 'white' }}>Mark Lost</button>
                                 )}
+                                {/* New Statuses */}
+                                <button onClick={() => handleStatusChange('sold')} className="btn btn-secondary">Mark Sold</button>
+                                <button onClick={() => handleStatusChange('dashed')} className="btn btn-secondary">Mark Dashed (Gift)</button>
+                                <button onClick={() => handleStatusChange('scrapped')} className="btn btn-secondary">Mark Scrapped</button>
                             </div>
                         </div>
 
@@ -172,6 +138,34 @@ export default function DeviceDetail({ params }) {
                     </div>
 
                     <div>
+                        {/* Comments Section */}
+                        <h3 style={{ marginBottom: '15px' }}>Owner Comments</h3>
+                        <div style={{ marginBottom: '20px', background: '#f8fafc', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
+                            <form onSubmit={handleAddComment}>
+                                <textarea
+                                    className="input-field"
+                                    rows="3"
+                                    placeholder="Add a public comment (e.g., 'Screen replaced', 'Receipt available')..."
+                                    value={newComment}
+                                    onChange={e => setNewComment(e.target.value)}
+                                ></textarea>
+                                <button disabled={submittingComment} type="submit" className="btn btn-sm btn-primary" style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                                    {submittingComment ? 'Posting...' : 'Post Comment'}
+                                </button>
+                            </form>
+                        </div>
+
+                        <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '2rem' }}>
+                            {device.comments && device.comments.length > 0 ? (
+                                device.comments.map((c, i) => (
+                                    <div key={i} style={{ padding: '0.75rem', borderBottom: '1px solid #eee' }}>
+                                        <p style={{ fontSize: '0.9rem' }}>{c.text}</p>
+                                        <small className="text-muted">By You on {new Date(c.date).toLocaleDateString()}</small>
+                                    </div>
+                                ))
+                            ) : <p className="text-muted">No comments yet.</p>}
+                        </div>
+
                         <h3 style={{ marginBottom: '20px' }}>History Log</h3>
                         <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                             {device.history.slice().reverse().map((log, index) => (

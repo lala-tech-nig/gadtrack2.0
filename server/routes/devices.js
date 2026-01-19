@@ -91,6 +91,10 @@ router.get('/lookup/:query', async (req, res) => {
             .populate({
                 path: 'history.owner',
                 select: 'name email nin'
+            })
+            .populate({
+                path: 'comments.user',
+                select: 'name'
             });
 
         if (!device) {

@@ -26,7 +26,7 @@ const DeviceSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'stolen', 'lost', 'missing', 'transferred'],
+        enum: ['active', 'stolen', 'lost', 'missing', 'transferred', 'sold', 'dashed', 'scrapped'],
         default: 'active'
     },
     owner: {
