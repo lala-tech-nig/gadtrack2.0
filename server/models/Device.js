@@ -34,6 +34,7 @@ const DeviceSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
+    // The Truth Trail
     history: [{
         owner: {
             type: mongoose.Schema.Types.ObjectId,
@@ -43,7 +44,27 @@ const DeviceSchema = new mongoose.Schema({
             type: Date,
             default: Date.now
         },
-        action: String // 'registered', 'transferred', 'reported_stolen'
+        action: {
+            type: String,
+            enum: ['registered', 'transferred_out', 'transferred_in', 'reported_stolen', 'reported_lost', 'recovered', 'repaired', 'commented']
+        },
+        details: String // Optional extra info, e.g. "Sold to John Doe"
+    }],
+    // Community Watch
+    comments: [{
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        text: {
+            type: String,
+            required: true
+        },
+        date: {
+            type: Date,
+            default: Date.now
+        }
     }],
     createdAt: {
         type: Date,

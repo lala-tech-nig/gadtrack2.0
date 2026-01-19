@@ -24,7 +24,7 @@ const checkLimit = require('../middleware/checkLimit');
 // @route   POST /api/transfers
 // @desc    Initiate a transfer
 // @access  Private
-router.post('/', [auth, checkLimit], async (req, res) => {
+router.post('/', [auth, checkLimit('transfers')], async (req, res) => {
     const { deviceId, toUserEmail } = req.body;
 
     try {
@@ -83,7 +83,7 @@ router.get('/pending', auth, async (req, res) => {
 // @route   PUT /api/transfers/:id/accept
 // @desc    Accept a transfer
 // @access  Private
-router.put('/:id/accept', [auth, checkLimit], async (req, res) => {
+router.put('/:id/accept', [auth, checkLimit('acceptances')], async (req, res) => {
     try {
         const transfer = await Transfer.findById(req.params.id);
         if (!transfer) return res.status(404).json({ msg: 'Transfer not found' });

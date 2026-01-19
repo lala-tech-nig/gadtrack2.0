@@ -8,8 +8,8 @@ import Link from 'next/link';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'TraceIt - Anti-Theft Platform',
-  description: 'Track and secure your devices.',
+  title: 'GadTrack - The Anti-Theft Fortress',
+  description: 'Secure your devices, verify history, and eliminate theft.',
 };
 
 export default function RootLayout({ children }) {
@@ -17,15 +17,18 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={inter.className}>
         {/* Navbar */}
-        <nav className="navbar">
+        <nav className="navbar glass">
           <div className="container nav-container">
-            <Link href="/" className="logo">TraceIt</Link>
-            <Link href="/auth" className="btn btn-primary">Login / Register</Link>
+            <Link href="/" className="logo text-gradient" style={{ fontSize: '1.5rem' }}>GadTrack</Link>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <Link href="/auth" className="btn btn-secondary">Login / Register</Link>
+              <Link href="/dashboard" className="btn btn-primary">Dashboard</Link>
+            </div>
           </div>
         </nav>
 
         {/* Page Content */}
-        <main>{children}</main>
+        <main style={{ minHeight: '80vh' }}>{children}</main>
 
         {/* Footer */}
         <footer className="footer">

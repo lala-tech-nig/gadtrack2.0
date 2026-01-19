@@ -23,7 +23,10 @@ const checkLimit = require('../middleware/checkLimit');
 // @route   POST /api/devices
 // @desc    Register a new device
 // @access  Private
-router.post('/', [auth, checkLimit], async (req, res) => {
+// @route   POST /api/devices
+// @desc    Register a new device
+// @access  Private (Unlimited for all roles)
+router.post('/', auth, async (req, res) => {
     const { serialNumber, imei, brand, model, color, details } = req.body;
 
     try {
@@ -41,11 +44,7 @@ router.post('/', [auth, checkLimit], async (req, res) => {
             brand,
             model,
             color,
-            details, // Add details field to schema if not present strictly? Mongoose ignores if not in schema usually, unless strict false. 
-            // My schema in previous view (step 256 list) didn't show 'details'. But let's assume it's fine or I should add it. 
-            // Wait, looking at DeviceSchema in step 256... it does NOT have details. 
-            // But User previously edited logic to include it? Maybe I missed it.
-            // Let's stick to what's there or just pass it.
+            details,
             owner: req.user.id,
             history: [{
                 owner: req.user.id,
@@ -55,10 +54,6 @@ router.post('/', [auth, checkLimit], async (req, res) => {
         });
 
         await newDevice.save();
-
-        // Increment Usage
-        if (req.incrementUsage) await req.incrementUsage();
-
         res.json(newDevice);
     } catch (err) {
         console.error(err.message);
@@ -84,7 +79,7 @@ router.get('/my-devices', auth, async (req, res) => {
 
 // @route   GET /api/devices/lookup/:query
 // @desc    Lookup device by serial or IMEI
-// @access  Public (should be limited in prod)
+// @access  Public (Blurred) / Private (Full + Limits)
 router.get('/lookup/:query', async (req, res) => {
     try {
         const query = req.params.query;
@@ -102,7 +97,68 @@ router.get('/lookup/:query', async (req, res) => {
             return res.status(404).json({ msg: 'Device not found' });
         }
 
+        // Soft Auth Check
+        const token = req.header('x-auth-token');
+        let user = null;
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+                user = await User.findById(decoded.user.id);
+            } catch (e) {
+                // Invalid token, treat as guest
+            }
+        }
+
+        if (!user) {
+            // Unauthenticated: Return Blurred/Restricted Info
+            return res.json({
+                brand: device.brand,
+                model: device.model,
+                color: device.color,
+                status: device.status,
+                isBlurred: true,
+                msg: "Login to view full ownership details."
+            });
+        }
+
+        // Authenticated: Run CheckLimit Logic manually for 'lookups'
+        // Logic duplicated from checkLimits but simplified here as we are inline
+        const actionType = 'lookups';
+
+        // Reset Month if needed
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        if (!user.usage || user.usage.month !== currentMonth) {
+            user.usage = { month: currentMonth, lookups: 0, transfers: 0, acceptances: 0 };
+            await user.save();
+        }
+
+        let limit = 0;
+        let unlimited = false;
+
+        if (['admin', 'enterprise_admin', 'store_manager', 'vendor', 'technician'].includes(user.role)) {
+            unlimited = true; // Vendors/Techs have unlimited lookups
+        } else {
+            limit = 3; // Basic
+        }
+
+        if (!unlimited && (user.usage.lookups || 0) >= limit) {
+            return res.status(402).json({
+                msg: 'Monthly lookup limit reached. Pay 1,000 NGN to view details.',
+                code: 'LIMIT_REACHED',
+                amount: 1000,
+                type: 'device_overage',
+                brand: device.brand,
+                model: device.model,
+                status: device.status,
+                isBlurred: true // Show blurred even if logged in if limit reached
+            });
+        }
+
+        // Increment Usage
+        await User.findByIdAndUpdate(user.id, { $inc: { 'usage.lookups': 1 } });
+
         res.json(device);
+
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');
@@ -147,6 +203,42 @@ router.post('/panic', async (req, res) => {
     console.log(`[PANIC] Device ${deviceId} flagged by ${JSON.stringify(reporterInfo)}`);
     // In real app: Push notification / Email to admins
     res.json({ msg: 'Panic alert received. Admin notified.' });
+});
+
+// @route   POST /api/devices/:id/comments
+// @desc    Add a comment to a device
+// @access  Private (Owner only)
+router.post('/:id/comments', auth, async (req, res) => {
+    const { text } = req.body;
+    try {
+        const device = await Device.findById(req.params.id);
+        if (!device) return res.status(404).json({ msg: 'Device not found' });
+
+        if (device.owner.toString() !== req.user.id) {
+            return res.status(401).json({ msg: 'Not authorized' });
+        }
+
+        const newComment = {
+            user: req.user.id,
+            text,
+            date: Date.now()
+        };
+
+        device.comments.unshift(newComment);
+
+        // Also add to history for completeness?
+        device.history.push({
+            owner: req.user.id,
+            action: 'commented',
+            details: text.substring(0, 50) + (text.length > 50 ? '...' : '')
+        });
+
+        await device.save();
+        res.json(device.comments);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
 });
 
 module.exports = router;

@@ -12,7 +12,7 @@ const TransactionSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['vendor_activation', 'device_overage', 'enterprise_subscription'],
+        enum: ['vendor_activation', 'device_overage', 'enterprise_subscription', 'technician_subscription'],
         required: true
     },
     status: {

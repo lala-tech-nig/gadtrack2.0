@@ -206,46 +206,86 @@ export default function Dashboard() {
                 </div>
             </header>
 
-            {/* Vendor Activation Banner */}
-            {user && user.role === 'vendor' && !user.isVendorActive && (
-                <div className="container" style={{ marginBottom: '2rem' }}>
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        style={{
-                            backgroundColor: '#FEF3C7',
-                            border: '2px solid #FCD34D',
-                            borderRadius: 'var(--radius-lg)',
-                            padding: '1.5rem',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            flexWrap: 'wrap',
-                            gap: '1rem'
-                        }}
-                    >
-                        <div>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#92400E', marginBottom: '0.5rem' }}>
-                                🚀 Activate Your Vendor Account
-                            </h3>
-                            <p style={{ color: '#78350F', fontSize: '0.9rem' }}>
-                                Pay ₦10,000 one-time fee to unlock unlimited device registrations and transfers.
-                            </p>
-                        </div>
-                        <AnimatedButton
-                            onClick={() => {
-                                setPaymentInfo({ type: 'vendor_activation', amount: 10000 });
-                                setPendingAction(null);
-                                setShowPaymentModal(true);
+            {/* Dashboard Alerts / Role Banners */}
+            <div className="container" style={{ marginBottom: '2rem' }}>
+                <AnimatePresence>
+                    {/* VENDOR / TECHNICIAN: Activation Needed */}
+                    {['vendor', 'technician'].includes(user.role) && user.subscription?.status !== 'active' && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="card"
+                            style={{
+                                padding: '1.5rem',
+                                marginBottom: '1rem',
+                                borderLeft: '4px solid var(--warning)',
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem',
+                                backgroundColor: '#fffbeb', boxShadow: 'none'
                             }}
-                            className="btn-primary"
-                            style={{ backgroundColor: '#D97706' }}
                         >
-                            Activate Now
-                        </AnimatedButton>
-                    </motion.div>
-                </div>
-            )}
+                            <div>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--warning)', marginBottom: '0.25rem' }}>
+                                    ⚠ Subscription Inactive
+                                </h3>
+                                <p className="text-muted">
+                                    {user.role === 'vendor' ? 'Pay ₦10,000' : 'Pay ₦5,000'} to unlock unlimited protection and history access.
+                                </p>
+                            </div>
+                            <AnimatedButton
+                                onClick={() => {
+                                    const amount = user.role === 'vendor' ? 10000 : 5000;
+                                    const type = user.role === 'vendor' ? 'vendor_activation' : 'technician_subscription';
+                                    setPaymentInfo({ type, amount });
+                                    setPendingAction(null);
+                                    setShowPaymentModal(true);
+                                }}
+                                className="btn-primary"
+                            >
+                                Activate {user.role === 'vendor' ? 'Vendor' : 'Technician'} Plan
+                            </AnimatedButton>
+                        </motion.div>
+                    )}
+
+                    {/* SUBSCRIPTION EXPIRY WARNING (If < 5 days) */}
+                    {user.subscription?.expiryDate && (
+                        (() => {
+                            const daysLeft = Math.ceil((new Date(user.subscription.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+                            if (daysLeft <= 5 && daysLeft > 0) {
+                                return (
+                                    <motion.div
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        className="card"
+                                        style={{ padding: '1rem', border: '1px solid var(--danger)', color: 'var(--danger)', marginBottom: '1rem', background: '#fef2f2' }}
+                                    >
+                                        <strong>⏳ Action Required:</strong> Your subscription expires in {daysLeft} days. Renew now to avoid service interruption.
+                                    </motion.div>
+                                );
+                            }
+                            return null;
+                        })()
+                    )}
+
+                    {/* BASIC USER: Usage Limits Display */}
+                    {user.role === 'basic' && (
+                        <div className="card" style={{ padding: '2rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', background: 'white' }}>
+                            <div className="text-center">
+                                <h4 className="text-muted" style={{ textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Transfers</h4>
+                                <p className="font-bold" style={{ fontSize: '2rem', color: 'var(--primary)' }}>{3 - (user.usage?.transfers || 0)} <span style={{ fontSize: '1rem', color: 'var(--text-light)' }}>/ 3</span></p>
+                            </div>
+                            <div className="text-center" style={{ borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
+                                <h4 className="text-muted" style={{ textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Acceptances</h4>
+                                <p className="font-bold" style={{ fontSize: '2rem', color: 'var(--primary)' }}>{3 - (user.usage?.acceptances || 0)} <span style={{ fontSize: '1rem', color: 'var(--text-light)' }}>/ 3</span></p>
+                            </div>
+                            <div className="text-center">
+                                <h4 className="text-muted" style={{ textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Lookups</h4>
+                                <p className="font-bold" style={{ fontSize: '2rem', color: 'var(--primary)' }}>{3 - (user.usage?.lookups || 0)} <span style={{ fontSize: '1rem', color: 'var(--text-light)' }}>/ 3</span></p>
+                            </div>
+                        </div>
+                    )}
+                </AnimatePresence>
+            </div>
 
             <main className="container">
                 {/* Tabs */}

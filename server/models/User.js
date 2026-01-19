@@ -21,12 +21,32 @@ const UserSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['basic', 'vendor', 'enterprise_admin', 'store_manager', 'admin'],
+        enum: ['basic', 'vendor', 'technician', 'enterprise_admin', 'store_manager', 'admin'],
         default: 'basic'
     },
-    usageLimit: {
-        count: { type: Number, default: 0 },
-        month: { type: String, default: () => new Date().toISOString().slice(0, 7) } // YYYY-MM
+    // Detailed Usage Limits for Basic Users (reset monthly)
+    usage: {
+        month: { type: String, default: () => new Date().toISOString().slice(0, 7) }, // YYYY-MM
+        lookups: { type: Number, default: 0 },
+        transfers: { type: Number, default: 0 },
+        acceptances: { type: Number, default: 0 }
+    },
+    // Subscription DNA for Vendors, Technicians, Enterprise
+    subscription: {
+        status: { 
+            type: String, 
+            enum: ['active', 'inactive', 'grace_period'], 
+            default: 'inactive' 
+        },
+        plan: { 
+            type: String, 
+            enum: ['basic', 'vendor', 'technician', 'enterprise'], 
+            default: 'basic'
+        },
+        startDate: Date,
+        expiryDate: Date,
+        lastPaymentDate: Date,
+        autoRenew: { type: Boolean, default: false }
     },
     isVendorActive: {
         type: Boolean,
@@ -34,26 +54,23 @@ const UserSchema = new mongoose.Schema({
     },
     enterpriseId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Enterprise' // Will point to User (Enterprise Admin) or Store? Let's use Store logic or just grouping
+        ref: 'User' // For store managers pointing to their Enterprise Admin
     },
     isAccountSuspended: {
         type: Boolean,
         default: false
-    },
-    // subscriptions
-    subscriptionStatus: {
-        type: String,
-        enum: ['active', 'inactive'],
-        default: 'inactive'
-    },
-    credits: {
-        type: Number,
-        default: 0 // Extra paid slots. Base limit is 2/month logic-based.
     },
     createdAt: {
         type: Date,
         default: Date.now
     }
 });
+
+// Helper to check if subscription is valid
+UserSchema.methods.isSubscriptionActive = function() {
+    if (this.role === 'basic') return true; // Basic doesn't need a sub, they pay per overage
+    if (this.role === 'admin') return true;
+    return this.subscription.status === 'active' && this.subscription.expiryDate > new Date();
+};
 
 module.exports = mongoose.model('User', UserSchema);

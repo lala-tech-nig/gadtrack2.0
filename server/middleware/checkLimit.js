@@ -1,67 +1,99 @@
 const User = require('../models/User');
 
-module.exports = async function (req, res, next) {
-    try {
-        const user = await User.findById(req.user.id);
+// Action Types: 'lookups', 'transfers', 'acceptances'
+module.exports = function (actionType) {
+    return async function (req, res, next) {
+        try {
+            // Assume Auth Middleware run before this, so req.user exists
+            if (!req.user) return res.status(401).json({ msg: 'Unauthorized' });
 
-        // 1. Vendor/Admin/Enterprise: Unlimited
-        if (['vendor', 'admin', 'enterprise_admin', 'store_manager'].includes(user.role)) {
-            // Check Vendor Activation
-            if (user.role === 'vendor' && !user.isVendorActive) {
-                return res.status(403).json({
-                    msg: 'Vendor account inactive. Please pay activation fee.',
-                    requiresPayment: true,
-                    paymentType: 'vendor_activation',
-                    amount: 10000
-                });
+            const user = await User.findById(req.user.id);
+            if (!user) return res.status(404).json({ msg: 'User not found' });
+
+            // 1. Reset Usage if new month
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            if (!user.usage || user.usage.month !== currentMonth) {
+                user.usage = {
+                    month: currentMonth,
+                    lookups: 0,
+                    transfers: 0,
+                    acceptances: 0
+                };
+                await user.save();
             }
-            return next();
-        }
 
-        // 2. Basic User Logic
-        const currentMonth = new Date().toISOString().slice(0, 7);
+            // 2. Define Limits based on Role
+            let limit = 0;
+            let unlimited = false;
 
-        // Reset count if new month
-        if (user.usageLimit.month !== currentMonth) {
-            user.usageLimit.month = currentMonth;
-            user.usageLimit.count = 0;
-            await user.save();
-        }
+            // Global Unlimited Roles
+            if (['admin', 'enterprise_admin', 'store_manager'].includes(user.role)) {
+                unlimited = true;
+            }
 
-        // Check Limit
-        const FREE_LIMIT = 2;
+            // Role Specifics
+            if (user.role === 'basic') {
+                // Limit is 3 for everything
+                limit = 3;
+            } else if (user.role === 'vendor') {
+                // Unlimited Lookups
+                if (actionType === 'lookups') unlimited = true;
+                else limit = 200; // Transfers/Acceptances
 
-        if (user.usageLimit.count < FREE_LIMIT) {
-            // Allowed via Free Tier
-            // We increment in the controller or here? 
-            // Better here, but only if operation succeeds.
-            // Actually, usually easier to check here, and increment in Controller or "finish" middleware.
-            // For simplicity, let's attach a method to request to increment?
+                // Check Subscription
+                if (!user.isSubscriptionActive()) {
+                    return res.status(402).json({
+                        msg: 'Subscription expired. Please pay 10,000 NGN to renew.',
+                        code: 'SUBSCRIPTION_EXPIRED',
+                        amount: 10000,
+                        type: 'vendor_subscription'
+                    });
+                }
+            } else if (user.role === 'technician') {
+                // Unlimited Lookups
+                if (actionType === 'lookups') unlimited = true;
+                else limit = 100; // Transfers/Acceptances
+
+                if (!user.isSubscriptionActive()) {
+                    return res.status(402).json({
+                        msg: 'Subscription expired. Please pay 5,000 NGN to renew.',
+                        code: 'SUBSCRIPTION_EXPIRED',
+                        amount: 5000,
+                        type: 'technician_subscription'
+                    });
+                }
+            }
+
+            // 3. Check specific limit
+            if (!unlimited) {
+                const currentUsage = user.usage[actionType] || 0;
+                if (currentUsage >= limit) {
+                    // Logic for Basic User Overage
+                    if (user.role === 'basic') {
+                        return res.status(402).json({
+                            msg: `Monthly ${actionType} limit reached. Pay 1,000 NGN to proceed.`,
+                            code: 'LIMIT_REACHED',
+                            amount: 1000,
+                            type: 'device_overage'
+                        });
+                    } else {
+                        return res.status(402).json({ msg: `Monthly ${actionType} limit reached.`, code: 'LIMIT_REACHED' });
+                    }
+                }
+            }
+
+            // 4. Attach incrementer
             req.incrementUsage = async () => {
-                const u = await User.findById(req.user.id); // refetch to be safe
-                u.usageLimit.count += 1;
-                await u.save();
+                // Re-fetch to avoid race conditions (simple version)
+                // In high volume, use $inc.
+                await User.findByIdAndUpdate(req.user.id, { $inc: { [`usage.${actionType}`]: 1 } });
             };
-            return next();
-        } else if (user.credits > 0) {
-            // Allowed via Credits
-            req.incrementUsage = async () => {
-                const u = await User.findById(req.user.id);
-                u.credits -= 1;
-                await u.save();
-            };
-            return next();
-        } else {
-            // Limit Reached
-            return res.status(402).json({
-                msg: 'Monthly limit reached. Pay to proceed.',
-                requiresPayment: true,
-                paymentType: 'device_overage',
-                amount: 1000
-            });
+
+            next();
+
+        } catch (err) {
+            console.error(err);
+            res.status(500).send('Server Error in Usage Check');
         }
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Server Error in Usage Check');
-    }
+    };
 };
